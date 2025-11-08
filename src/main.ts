@@ -629,54 +629,9 @@ export class ShapeDetector {
   }
 
   /**
-   * Filter out overlapping duplicate shapes
-   */
-  private filterOverlappingShapes(shapes: DetectedShape[]): DetectedShape[] {
-    const filtered: DetectedShape[] = [];
-    const used = new Set<number>();
-
-    // Sort by confidence descending
-    const sorted = shapes.slice().sort((a, b) => b.confidence - a.confidence);
-
-    for (let i = 0; i < sorted.length; i++) {
-      if (used.has(i)) continue;
-
-      filtered.push(sorted[i]);
-      used.add(i);
-
-      // Mark overlapping shapes as used
-      for (let j = i + 1; j < sorted.length; j++) {
-        if (used.has(j)) continue;
-
-        const iou = this.calculateShapeIoU(sorted[i].boundingBox, sorted[j].boundingBox);
-        if (iou > 0.5) {
-          used.add(j);
-        }
-      }
-    }
-
-    return filtered;
-  }
-
-  /**
-   * Calculate IoU between two bounding boxes
-   */
-  private calculateShapeIoU(box1: any, box2: any): number {
-    const x1 = Math.max(box1.x, box2.x);
-    const y1 = Math.max(box1.y, box2.y);
-    const x2 = Math.min(box1.x + box1.width, box2.x + box2.width);
-    const y2 = Math.min(box1.y + box1.height, box2.y + box2.height);
-
-    if (x2 <= x1 || y2 <= y1) return 0;
-
-    const intersection = (x2 - x1) * (y2 - y1);
-    const union = box1.width * box1.height + box2.width * box2.height - intersection;
-
-    return intersection / union;
-  }
-
-  /**
    * Convert to grayscale and detect edges using Sobel operator
+   * NOTE: This method is deprecated and not used in the current implementation.
+   * Kept for reference only.
    */
   private detectEdges(imageData: ImageData): Uint8ClampedArray {
     const width = imageData.width;
@@ -787,6 +742,8 @@ export class ShapeDetector {
 
   /**
    * Find contours in the edge-detected image
+   * NOTE: This method is deprecated and not used in the current implementation.
+   * Kept for reference only.
    */
   private findContours(edges: Uint8ClampedArray, width: number, height: number): Point[][] {
     const visited = new Uint8ClampedArray(width * height);
@@ -847,55 +804,7 @@ export class ShapeDetector {
     return contour;
   }
 
-  /**
-   * OLD - NOT USED
-   */
-  private analyzeContourOld(contour: Point[], imageData: ImageData): DetectedShape | null {
-    // Calculate bounding box
-    const bbox = this.calculateBoundingBox(contour);
-    
-    // Filter out very small shapes (likely noise)
-    if (bbox.width < 15 || bbox.height < 15) return null;
-    
-    // Calculate center
-    const center = this.calculateCentroid(contour);
-    
-    // Calculate perimeter
-    const perimeter = this.calculatePerimeter(contour);
-    
-    // Calculate area using convex hull (filled area)
-    const area = this.calculateContourArea(contour);
-    
-    // Check for circle FIRST before polygon approximation
-    const circularity = (4 * Math.PI * area) / (perimeter * perimeter);
-    if (circularity > 0.7 && this.isCircle(contour, center, bbox)) {
-      const circleConfidence = Math.min(0.98, 0.75 + circularity * 0.23);
-      return {
-        type: "circle",
-        confidence: circleConfidence,
-        boundingBox: bbox,
-        center: center,
-        area: area,
-      };
-    }
-    
-    // For non-circles, approximate the contour to reduce noise
-    const epsilon = 0.04 * perimeter; // Increased epsilon for better approximation
-    const approx = this.approximatePolygon(contour, epsilon);
-    
-    // Classify based on shape properties
-    const classification = this.classifyShape(contour, approx, bbox, center, area, perimeter, imageData);
-    
-    if (!classification) return null;
-    
-    return {
-      type: classification.type,
-      confidence: classification.confidence,
-      boundingBox: bbox,
-      center: center,
-      area: area,
-    };
-  }
+
 
   /**
    * Calculate area of contour using shoelace formula

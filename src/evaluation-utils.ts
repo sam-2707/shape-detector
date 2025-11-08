@@ -42,10 +42,12 @@ export function calculateDistance(p1: { x: number; y: number }, p2: { x: number;
 }
 
 
-export function evaluateDetection(detected: any[], groundTruth: GroundTruthShape[], imageName: string): EvaluationMetrics {
-  const iouThreshold = 0.5;
-  const centerThreshold = 10; 
-  const areaThreshold = 0.15; 
+export function evaluateDetection(
+  detectedShapes: DetectedShape[],
+  groundTruth: GroundTruthShape[]
+): EvaluationResult {
+  // Thresholds for matching
+  const iouThreshold = 0.5; // IoU threshold for matching
   
   let truePositives = 0;
   let totalIoU = 0;
@@ -55,7 +57,7 @@ export function evaluateDetection(detected: any[], groundTruth: GroundTruthShape
   
   const matched = new Set();
   
-  for (const detectedShape of detected) {
+  for (const detectedShape of detectedShapes) {
     let bestMatch = null;
     let bestIoU = 0;
     let bestIndex = -1;
@@ -96,7 +98,7 @@ export function evaluateDetection(detected: any[], groundTruth: GroundTruthShape
     }
   }
   
-  const precision = detected.length > 0 ? truePositives / detected.length : 0;
+  const precision = detectedShapes.length > 0 ? truePositives / detectedShapes.length : 0;
   const recall = groundTruth.length > 0 ? truePositives / groundTruth.length : 1;
   const f1Score = precision + recall > 0 ? 2 * (precision * recall) / (precision + recall) : 0;
   
