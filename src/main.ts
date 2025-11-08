@@ -37,12 +37,27 @@ export class ShapeDetector {
   }
 
   /**
-   * MAIN ALGORITHM TO IMPLEMENT
-   * Method for detecting shapes in an image
+   * MAIN SHAPE DETECTION ALGORITHM
+   * 
+   * Approach: Connected Components with Polygon Approximation
+   * 
+   * Algorithm Steps:
+   * 1. Create binary mask: Separate foreground (dark pixels) from background
+   * 2. Find connected components: Use flood fill to identify separate regions
+   * 3. Analyze each component:
+   *    - Extract boundary points
+   *    - Compute convex hull (for convex shapes) or use boundary (for concave shapes like stars)
+   *    - Approximate polygon using Douglas-Peucker algorithm
+   *    - Classify shape based on vertex count, extent, circularity, and aspect ratio
+   * 
+   * Key Features:
+   * - Handles both convex shapes (circle, triangle, rectangle, pentagon) and concave shapes (star)
+   * - Uses extent (area/bbox ratio) to distinguish similar shapes
+   * - Adaptive polygon approximation based on shape complexity
+   * - Fast processing with connected components approach
+   * 
    * @param imageData - ImageData from canvas
-   * @returns Promise<DetectionResult> - Detection results
-   *
-   * TODO: Implement shape detection algorithm here
+   * @returns Promise<DetectionResult> - Detection results with shapes, processing time, and image dimensions
    */
   async detectShapes(imageData: ImageData): Promise<DetectionResult> {
     const startTime = performance.now();
@@ -88,6 +103,9 @@ export class ShapeDetector {
 
   /**
    * Create binary mask separating foreground from background
+   * 
+   * Strategy: Detect dark pixels (shapes are typically black on white/light background)
+   * Threshold: intensity < 128 with alpha > 200 (opaque dark pixels)
    */
   private createBinaryMask(data: Uint8ClampedArray, width: number, height: number): Uint8ClampedArray {
     const binary = new Uint8ClampedArray(width * height);
@@ -117,6 +135,9 @@ export class ShapeDetector {
 
   /**
    * Find connected components using flood fill
+   * 
+   * Uses 4-connected flood fill to identify separate regions in the binary mask.
+   * Each component represents a potential shape.
    */
   private findConnectedComponents(binary: Uint8ClampedArray, width: number, height: number): Point[][] {
     const labeled = new Uint8ClampedArray(width * height);
@@ -174,6 +195,16 @@ export class ShapeDetector {
 
   /**
    * Analyze a connected component and classify shape
+   * 
+   * Process:
+   * 1. Calculate bounding box and center
+   * 2. Extract boundary points
+   * 3. Compute convex hull OR use boundary for concave shapes
+   * 4. Approximate polygon with adaptive epsilon
+   * 5. Classify based on vertices, extent, circularity
+   * 
+   * Key Decision: For very concave shapes (extent < 0.40), use boundary instead of hull
+   * to preserve star's inner vertices that would be lost with convex hull.
    */
   private analyzeComponent(component: Point[], width: number, height: number): DetectedShape | null {
     // Calculate bounding box
@@ -349,6 +380,17 @@ export class ShapeDetector {
 
   /**
    * Classify shape based on approximated polygon
+   * 
+   * Classification Strategy:
+   * - Primary: Vertex count (3=triangle, 4=rectangle, 5=pentagon, 8+=star)
+   * - Secondary: Extent ratio (area/bbox) to disambiguate edge cases
+   * - Tertiary: Circularity and aspect ratio for circles
+   * 
+   * Extent-based disambiguation:
+   * - Triangles: extent ~0.50 (half of bbox)
+   * - Rectangles: extent >0.70 (fill bbox well)
+   * - Stars: extent <0.40 (very concave)
+   * - Circles: extent >0.70 + circularity >0.70
    */
   private classifyShape(
     approx: Point[],
@@ -989,7 +1031,15 @@ export class ShapeDetector {
   }
 
   /**
-   * Douglas-Peucker algorithm implementation
+   * Douglas-Peucker algorithm for polygon approximation
+   * 
+   * Recursively simplifies a curve by removing points that are within
+   * epsilon distance from the line connecting endpoints.
+   * 
+   * Adaptive epsilon values:
+   * - 0.01 * perimeter: Standard approximation for regular shapes
+   * - 0.005 * perimeter: Finer approximation for rectangles
+   * - 0.01 * perimeter: For star boundaries (preserves concave vertices)
    */
   private douglasPeucker(points: Point[], epsilon: number): Point[] {
     if (points.length < 3) return points;
