@@ -76,8 +76,7 @@ export async function runSelectedEvaluation(
       // Evaluate results
       const evaluation = evaluateDetection(
         detectionResult.shapes,
-        gtShapes,
-        imageName
+        gtShapes
       );
       evaluation.processing_time = detectionResult.processingTime;
 
@@ -183,8 +182,7 @@ export async function runEvaluation(
       // Evaluate results
       const evaluation = evaluateDetection(
         detectionResult.shapes,
-        gtShapes,
-        imageName
+        gtShapes
       );
       evaluation.processing_time = detectionResult.processingTime;
 

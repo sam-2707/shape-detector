@@ -1,3 +1,15 @@
+export interface DetectedShape {
+  type: "circle" | "triangle" | "rectangle" | "pentagon" | "star";
+  confidence: number;
+  boundingBox: {
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+  };
+  center: { x: number; y: number };
+  area: number;
+}
 
 export interface GroundTruthShape {
   type: string;
@@ -8,6 +20,17 @@ export interface GroundTruthShape {
   vertices?: { x: number; y: number }[];
   radius?: number;
   [key: string]: any;
+}
+
+export interface EvaluationResult {
+  precision: number;
+  recall: number;
+  f1_score: number;
+  average_iou: number;
+  center_point_accuracy: number;
+  area_accuracy: number;
+  confidence_calibration: number;
+  processing_time: number;
 }
 
 export interface EvaluationMetrics {
